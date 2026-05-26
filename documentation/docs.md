@@ -46,7 +46,7 @@ Pierwsze odpalenie aplikacji React w localhoscie
 
 5. Utworzenie pliku `.gitignore`
 
-![gitignore](https://i.postimg.cc/MTqP5mm5/image.png)
+![gitignore](https://cdn.discordapp.com/attachments/797491927817650177/1508860836066627784/image.png?ex=6a1713a8&is=6a15c228&hm=a23a2714a8af25bc15496277e98509612a5951e28941073f95acf1b30d90e1c5&)
 
 6. Zaprojektowałam bazę danych podaną w `README.md` na Supabase, lącząc się z Githubem
 
@@ -64,5 +64,14 @@ Uzupełniłam plik `.env` o supabase_url i supabase_key
 
 Kończę fazę 1 commitem do lokalnego repozytorium:
 ```
+git status
+git branch -m master main
+git add .
+git commit -m "Initial commit: Project structure"
 
 ```
+
+Później połączyłam lokalne repozytorium ze zdalnym:
+https://github.com/kyiooo/seriestracker.git
+
+### FAZA 2 Implementacja danych

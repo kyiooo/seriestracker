@@ -192,7 +192,7 @@ Przykładowy test:\
 ## Klonowanie repozytorium
 
 ```bash
-git clone https://github.com/kyiooo/SeriesTracker.git
+git clone https://github.com/kyiooo/seriestracker.git
 
 cd SeriesTracker
 ```
