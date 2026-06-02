@@ -74,4 +74,6 @@ git commit -m "Initial commit: Project structure"
 Później połączyłam lokalne repozytorium ze zdalnym:
 https://github.com/kyiooo/seriestracker.git
 
-### FAZA 2 Implementacja danych
+### FAZA 1,5 Tworzenie aplikacji
+
+Kolejnym etapem było zbudowanie przeze mnie aplikacji, na początku utworzyłam nowy branch `feature/login-page` oraz w następnych etapach `feature/register-page`. W obu przypadkach najpierw zajęłam się ui a potem będę commitować do tych feature'ow backend.
