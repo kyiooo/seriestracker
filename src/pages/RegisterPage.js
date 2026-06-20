@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/RegisterPage.css";
+import { supabase } from "../services/supabaseClient";
 
 function RegisterPage() {
     const navigate = useNavigate();
@@ -63,20 +64,17 @@ function RegisterPage() {
         }
         try {
             setLoading(true);
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/register`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
+            const {error} = await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password,
+                options: {
+                    data: {
+                        username: formData.username,
+                    },
                 },
-                body: JSON.stringify({
-                    username: formData.username,
-                    email: formData.email,
-                    password: formData.password,
-                }),
             });
-            const data = await response.json();
-            if (!response.ok) {
-                setError(data.message || "Nie udało się utworzyć konta.");
+            if (error) {
+                setError(error.message);
                 return;
             }
             setSuccess("Konto utworzone. Możesz się zalogować.");
