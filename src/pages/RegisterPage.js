@@ -64,7 +64,7 @@ function RegisterPage() {
         }
         try {
             setLoading(true);
-            const {error} = await supabase.auth.signUp({
+            const {data, error} = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
                 options: {
@@ -77,9 +77,25 @@ function RegisterPage() {
                 setError(error.message);
                 return;
             }
+
+            const user = data.user;
+
+            const {error: profileError} = await supabase
+            .from ("profiles")
+            .insert ({
+                id: user.id,
+                username: formData.username,
+                email: formData.email,
+            });
+
+            if (profileError){
+                setError(profileError.message);
+                return;
+            }
+
             setSuccess("Konto utworzone. Możesz się zalogować.");
             setTimeout(() => {
-                navigate("/");
+                navigate("/login");
             }, 1200);
         } catch (err) {
             setError("Brak połączenia z serwerem.");
