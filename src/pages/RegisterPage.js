@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/RegisterPage.css";
 
 function RegisterPage() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: "",
         email: "",
@@ -11,6 +12,8 @@ function RegisterPage() {
     });
 
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showRepeatPassword, setShowRepeatPassword] = useState(false);
 
@@ -29,13 +32,14 @@ function RegisterPage() {
 
     const handleChange = (e) => {
         setError("");
+        setSuccess("");
         setFormData({
             ...formData,
             [e.target.name]: e.target.value,
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!validateUsername(formData.username)) {
@@ -56,6 +60,33 @@ function RegisterPage() {
         if (formData.password !== formData.repeatPassword) {
             setError("Hasła muszą być takie same.");
             return;
+        }
+        try {
+            setLoading(true);
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/register`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: formData.username,
+                    email: formData.email,
+                    password: formData.password,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                setError(data.message || "Nie udało się utworzyć konta.");
+                return;
+            }
+            setSuccess("Konto utworzone. Możesz się zalogować.");
+            setTimeout(() => {
+                navigate("/");
+            }, 1200);
+        } catch (err) {
+            setError("Brak połączenia z serwerem.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -85,7 +116,8 @@ function RegisterPage() {
                     <h2>Zarejestruj się</h2>
                     <p></p>
                 </div>
-                {error && <div className="register-error">{error}</div>}
+                {error && <div className="register-error">{error}</div>} 
+                {success && <div className="register-success">{success}</div>}
                 <form className="register-form" onSubmit={handleSubmit}>
                     <div className="register-input-box">
                         <input
@@ -145,8 +177,10 @@ function RegisterPage() {
                             {showRepeatPassword ? "🙈" : "👁️"}
                         </button>
                     </div>
-                    <button className="main-btn" type="submit">
-                        <span>Zarejestruj się</span>
+                    <button className="register-btn" type="submit" disabled={
+                        loading
+                    }>
+                        <span>{loading ? "Tworzenie konta ..." : "Zarejestruj się"}</span>
                     </button>
                 </form>
                 <p className="register-switch">
