@@ -1,24 +1,46 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "../styles/LoginPage.css";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../services/supabaseClient";
 
 function LoginPage() {
-    const [fromData, setFormData] = useState({
+    const [formData, setFormData] = useState({
         email: "",
         password: "",
     });
 
+    const navigate = useNavigate();
+    const [error, setError] = useState("");
+    const location = useLocation();
+    const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const handlechange = (e) => {
         setFormData({
-            ...fromData,
+            ...formData,
             [e.target.name]: e.target.value,
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Logowanie:", fromData);
+        
+        try {
+            setLoading(true);
+            const {error} = await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password,
+            });
+            if (error){
+                setError("Nieprawidłowy email lub hasło");
+                return;
+            }
+            navigate("/");
+        } catch(err){
+            setError("Błąd logowania");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -48,14 +70,23 @@ function LoginPage() {
                     <h2>Zaloguj się</h2>
                     <p></p>
                 </div>
-
+                {location.state?.registered && (
+                    <div className="login-success">
+                        Konto zostało utworzone. Sprawdź skrzynkę email i aktywuj konto aby się zalogować.
+                    </div>
+                )}
+                {error && (
+                    <div className="login-error">
+                        {error}
+                    </div>
+                )}
                 <form className="login-form" onSubmit={handleSubmit}>
                     <div className="input-box">
                         <input
                             type="email"
                             name="email"
                             placeholder=""
-                            value={fromData.email}
+                            value={formData.email}
                             onChange={handlechange}
                             required
                         />
@@ -66,7 +97,7 @@ function LoginPage() {
                             type={showPassword ? "text" : "password"}
                             name="password"
                             placeholder=""
-                            value={fromData.password}
+                            value={formData.password}
                             onChange={handlechange}
                             required
                         />
@@ -79,8 +110,8 @@ function LoginPage() {
                             {showPassword ? "🙈" : "👁️"}
                         </button>
                     </div>
-                    <button className="main-btn" type="submit">
-                        <span>Zaloguj się</span>
+                    <button className="main-btn" type="submit" disabled = {loading}>
+                        <span>{loading ? "Logowanie ..." : "Zaloguj się"}</span>
                     </button>
                 </form>
                 <p className="switch-text">

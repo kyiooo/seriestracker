@@ -321,6 +321,30 @@ body {
     color: var(--text);
 }
 
+.login-success {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #86efac;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.login-error{
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+    text-align: center;
+    font-size: 14px;
+}
+
+
 @keyframes float {
     from {
         transform: translate3d(0, 0, 0), scale(1)
