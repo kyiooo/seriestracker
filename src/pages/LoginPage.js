@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "../styles/LoginPage.css";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabaseClient";
@@ -12,6 +12,7 @@ function LoginPage() {
 
     const navigate = useNavigate();
     const [error, setError] = useState("");
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const handlechange = (e) => {
@@ -69,6 +70,11 @@ function LoginPage() {
                     <h2>Zaloguj się</h2>
                     <p></p>
                 </div>
+                {location.state?.registered && (
+                    <div className="login-success">
+                        Konto zostało utworzone. Sprawdź skrzynkę email i aktywuj konto aby się zalogować.
+                    </div>
+                )}
                 {error && (
                     <div className="login-error">
                         {error}

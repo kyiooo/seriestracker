@@ -95,7 +95,11 @@ function RegisterPage() {
 
             setSuccess("Konto utworzone. Możesz się zalogować.");
             setTimeout(() => {
-                navigate("/login");
+                navigate("/login",{
+                    state: {
+                        registered: true,
+                    },
+                });
             }, 1200);
         } catch (err) {
             setError("Brak połączenia z serwerem.");
