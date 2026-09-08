@@ -76,6 +76,14 @@ https://github.com/kyiooo/seriestracker.git
 
 ### FAZA 1,5 Tworzenie aplikacji
 
-Kolejnym etapem było zbudowanie przeze mnie aplikacji, na początku utworzyłam nowy branch `feature/login-page` oraz w następnych etapach `feature/register-page`. W obu przypadkach najpierw zajęłam się ui a potem będę commitować do tych feature'ow backend.
+Kolejnym etapem było zbudowanie przeze mnie aplikacji, na początku utworzyłam nowy branch `feature/login-page` oraz w następnych etapach `feature/register-page`. W obu przypadkach najpierw zajęłam się ui.
+W bazie danych utorzyłam specjalne polices by dane byly bezpieczne, skonfirugowałam potwierdzenie rejestracji przez email.
+Następnie dodałam funkcjonalność do wszystkich przycisków oraz przechodzenie przez routingi.
 
-Następnie utworzyłam server łączący moją aplikację z bazą danych SupaBase. Pozwoli to mi na ukrycie "secret key", który bezpośrednio łączy moją aplikację z bazą.
+Kolejno przeszłam do tworzenia home-page'a, któremu najpierw nadałam docelowy wygląd spełniając swoją wizję na działanie aplikacji, a następnie połączyłam się z zewnętrznym API i przy jego użyciu wyświetliłam trendy seriali z tego tygodnia.
+
+Wszystkie zmiany odpowiednio zcommitowałam.
+
+
+Utworzyłam bazowego `Dockerfile` i `docker-compose.yml` jako przygotowanie środowiska deweloperskiego
+
