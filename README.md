@@ -147,7 +147,7 @@ SeriesTracker 🎬 to aplikacja webowa służąca do zarządzania osobistą list
 
 Baza danych będzie przechowywać użytkowników, seriale, sezony, odcinki oraz informacje o postępie oglądania. Każdy użytkownik będzie mógł dodawać seriale do własnej biblioteki, oznaczać odcinki jako obejrzane, ustawiać status oglądania oraz dodawać seriale do ulubionych.
 
-![schematbazydanych](https://cdn.discordapp.com/attachments/797491927817650177/1508820319283183757/image.png?ex=6a16edec&is=6a159c6c&hm=a08b479eb9c104b950501fdbac18b7cb7dc7623eac7fdc48f50ceed3781fce7b&)
+![schematbazydanych](https://i.postimg.cc/wjRFfV7d/image.png)
 
 --- 
 
