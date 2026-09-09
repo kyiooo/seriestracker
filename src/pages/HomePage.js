@@ -138,6 +138,13 @@ function TrendingCarousel() {
                               </div>
                               <div className="carousel-title">{series.title}</div>
                               <div className="carousel-genre">{series.genre}</div>
+
+                              <Link
+                                to={`/series/${series.id}`}
+                                className="carousel-details-btn"
+                              >Zobacz szczegóły
+                                <ChevronRight size={15} />
+                              </Link>
                             </div>
                           </>
                       )}
@@ -228,16 +235,25 @@ export default function HomePage() {
         <section className="hero">
           <div className="hero-bg" />
           <div className="hero-grid" />
+          <div className="hero-particles">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+          </div>
           <div className="hero-orb hero-orb-1" />
           <div className="hero-orb hero-orb-2" />
           <div className="hero-orb hero-orb-3" />
 
           <div className="hero-inner">
-            <div className="hero-badge">
-              <span className="hero-badge-dot" />
-              Twój osobisty dziennik seriali
-            </div>
-
             <h1 className="hero-title">
               ŚLEDŹ KAŻDY<br />
               <span className="hero-title-gradient">ODCINEK.</span>
@@ -373,8 +389,10 @@ export default function HomePage() {
             </div>
             <p>Projekt ISI · Informatyka 235IC A2 · Małgorzata Andrzejewska · 2026</p>
             <div className="footer-links">
-              <a href="#">Polityka prywatności</a>
-              <a href="#">Kontakt</a>
+              <div className="footer-links">
+                <button type="button">Polityka prywatności</button>
+                <button type="button">Kontakt</button>
+              </div>
             </div>
           </div>
         </footer>
