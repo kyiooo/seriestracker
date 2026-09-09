@@ -11,3 +11,23 @@ export const getTrending = async () =>{
         return []
     }
 };
+
+export const getSeriesDetails = async (id) => {
+    try {
+        const response = await axios.get(`${API_URL}/series/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Błąd pobierania szczegółów SERIALU", error);
+        return null;
+    }
+};
+
+export const getSeasonDetails = async (id, seasonNumber) => {
+    try {
+        const response = await axios.get(`${API_URL}/series/${id}/season/${seasonNumber}`);
+        return response.data;
+    } catch (error) {
+        console.error("Błąd pobierania odcinków", error);
+        return null;
+    }
+};

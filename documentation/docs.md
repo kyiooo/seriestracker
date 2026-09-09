@@ -84,6 +84,7 @@ Kolejno przeszłam do tworzenia home-page'a, któremu najpierw nadałam docelowy
 
 Wszystkie zmiany odpowiednio zcommitowałam.
 
+Utworzyłam nowy page `SeriesDetailsPage.js`, którego zadaniem jest pokazywanie szczegółów danego serialu (sezonów i odcinków).
 
 Utworzyłam bazowego `Dockerfile` i `docker-compose.yml` jako przygotowanie środowiska deweloperskiego
 

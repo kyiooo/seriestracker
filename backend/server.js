@@ -12,12 +12,12 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'SERWER DZIAŁA!' });
+    res.json({ status: 'ok', message: 'SERWER DZIAŁA GICIO!' });
 });
 
 app.get('/api/trending', async (req, res) => {
     try {
-        const response = await axios.get('https://api.themoviedb.org/3/trending/tv/week?language=pl-PL', {
+        const response = await axios.get(`https://api.themoviedb.org/3/trending/tv/week?language=pl-PL`, {
             headers: {
                 accept: 'application/json',
                 Authorization: `Bearer ${process.env.TMDB}`
@@ -27,9 +27,41 @@ app.get('/api/trending', async (req, res) => {
     }catch(error){
         console.error(error)
         res.status(500).json({message:'Błąd pobierania z TMDb'});
-        return [];
     }
 });
+
+app.get('/api/series/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const response = await axios.get(`https://api.themoviedb.org/3/tv/${id}?language=pl-PL`, {
+            headers: {
+                accept: 'application/json',
+                Authorization: `Bearer ${process.env.TMDB}`
+            }
+        });
+        res.json(response.data);
+    }catch(error){
+        console.error(error)
+        res.status(500).json({message:'Błąd pobierania szegłówów seriali z TMDb'});
+    }
+});
+
+app.get('/api/series/:id/season/:seasonNumber', async (req, res) => {
+    try {
+        const { id, seasonNumber } = req.params;
+        const response = await axios.get(`https://api.themoviedb.org/3/tv/${id}/season/${seasonNumber}?language=pl-PL`, {
+            headers: {
+                accept: 'application/json',
+                Authorization: `Bearer ${process.env.TMDB}`
+            }
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Błąd pobierania odcinków z TMDb' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Serwer działa na porcie http://localhost:${PORT}/api/health`);
 });
