@@ -75,5 +75,33 @@ export const getUserSeries = async () => {
         return [];
     }
 };
+export const removeSeriesFromList = async (seriesId) => {
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session) return { success: false };
 
+        await axios.delete(`${API_URL}/user-series/${seriesId}`, {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Błąd usuwania:", error);
+        return { success: false };
+    }
+};
+
+export const updateSeriesProgress = async (seriesId, updates) => {
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session) return { success: false };
+
+        const response = await axios.patch(`${API_URL}/user-series/${seriesId}`, updates, {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        return { success: true, data: response.data };
+    } catch (error) {
+        console.error("Błąd aktualizacji:", error);
+        return { success: false };
+    }
+};
 

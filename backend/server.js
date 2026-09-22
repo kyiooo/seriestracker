@@ -80,7 +80,7 @@ app.post('/api/user-series', verifyToken, async (req, res) => {
         })
         if(error){
             if(error.code === '23505'){
-                return res.status(400).json({message:"Ten serial już znajduje się na twojej liście"});
+                return res.status(400).json({message:"Ten serial już znajjduje się na twjej liście"});
             }
             throw error;
         }
@@ -126,6 +126,54 @@ app.get('/api/user-series', verifyToken ,async (req, res) => {
         res.status(500).json({message: "Błąd serwera przy pobieraniu serialu"});
     }
 })
+
+//Usuwanie serialu z listy
+app.delete('/api/user-series/:seriesId', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const seriesId = req.params.seriesId;
+
+        const { error } = await supabase
+            .from('user_series')
+            .delete()
+            .eq('user_id', userId)
+            .eq('series_id', seriesId);
+
+        if (error) throw error;
+
+        res.status(200).json({ message: "Serial usunięty z listy." });
+    } catch (error) {
+        console.error("Błąd usuwania:", error);
+        res.status(500).json({ message: "Błąd serwera przy usuwaniu serialu." });
+    }
+});
+//Zmiana statusu serialu dodanego do listy - standardowo dodany jako Planowane
+app.patch('/api/user-series/:seriesId', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const seriesId = req.params.seriesId;
+        const { status, episodes_watched, user_rating } = req.body;
+
+        const { data, error } = await supabase
+            .from('user_series')
+            .update({
+                ...(status && { status }),
+                ...(episodes_watched !== undefined && { episodes_watched }),
+                ...(user_rating !== undefined && { user_rating })
+            })
+            .eq('user_id', userId)
+            .eq('series_id', seriesId)
+            .select();
+
+        if (error) throw error;
+
+        res.status(200).json({ message: "Zaktualizowano pomyślnie.", data });
+    } catch (error) {
+        console.error("Błąd aktualizacji:", error);
+        res.status(500).json({ message: "Błąd serwera przy aktualizacji." });
+    }
+});
+
 
 app.listen(PORT, () => {
     console.log(`Serwer działa na porcie http://localhost:${PORT}/api/health`);

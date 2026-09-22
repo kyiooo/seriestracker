@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle, Clock, BookmarkPlus, Star, ChevronRight, ChevronLeft, Menu, X, TrendingUp, User, Settings, LogOut } from "lucide-react";
+import { CheckCircle, Clock, BookmarkPlus, Star, ChevronRight, ChevronLeft, Menu, X, TrendingUp, User, Settings, LogOut, Trash2 } from "lucide-react";
 import "../styles/HomePage.css";
-import { getTrending, addSeriesToList, getUserSeries } from "../services/seriesService";
+import {getTrending, addSeriesToList, getUserSeries, removeSeriesFromList} from "../services/seriesService";
 import { supabase } from "../services/supabaseClient";
 
 function GlassCard({ children, className }) {
@@ -15,13 +15,22 @@ function GlassCard({ children, className }) {
   );
 }
 
+
 // Przekazujemy usera, żeby komponent wiedział, czy wpuścić  czy wywalić do rejestracji
-function TrendingCarousel({ user }) {
+function TrendingCarousel({ user, onSeriesAdded}) {
   const [trending, setTrending] = useState([]);
   const [active, setActive] = useState(0);
   const [isAdding, setIsAdding] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (trending.length === 0) return;
+    const interval = setInterval(() => {
+      setActive((prev) => (prev + 1) % trending.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  },[trending.length]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,6 +104,9 @@ function TrendingCarousel({ user }) {
 
     setFeedbackMsg(result.message);
     setIsAdding(false);
+    if (result.success && onSeriesAdded) {
+      onSeriesAdded();
+    }
 
     setTimeout(() => {
       setFeedbackMsg("");
@@ -209,8 +221,8 @@ export default function HomePage() {
   const [userName, setUserName] = useState("");
   const [mySeries, setMySeries] = useState([]);
 
-  const [activeFilter, setActiveFilter] = useState("Planowane");
-  const filters = ["Wszystkie", "Oglądane", "W trakcie", "Ukończone", "Planowane"];
+  const [activeFilter, setActiveFilter] = useState("Wszystkie");
+  const filters = ["Wszystkie", "W trakcie", "Ukończone", "Planowane"];
 
   // Odświezanie listy po dodaniu serialu
   // Nie działa z niewiadomych przyczyn
@@ -246,6 +258,7 @@ export default function HomePage() {
   }, []);
 
 
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -254,12 +267,22 @@ export default function HomePage() {
     setMenuOpen(false);
   };
 
+  const handleDeleteSeries = async (e, seriesId) => {
+    e.preventDefault();
+    const result = await removeSeriesFromList(seriesId);
+    if (result.success) {
+      // Aktualizacja listy
+      setMySeries(prev => prev.filter(s => s.series_id !== seriesId));
+    }
+  };
+
+
   // Statystyki z bazy danych dla konkretnego uzytkownika
   const dynamicStats = [
     { value: mySeries.reduce((acc, s) => acc + (s.episodes_watched || 0), 0), label: "Odcinków obejrzanych" },
     { value: mySeries.length, label: "Seriali na liście" },
     { value: mySeries.filter(s => s.status === "Ukończone").length, label: "Ukończonych seriali" },
-    { value: mySeries.filter(s => s.status === "W trakcie" || s.status === "Oglądane").length, label: "W trakcie oglądania" },
+    { value: mySeries.filter(s => s.status === "W trakcie" ).length, label: "W trakcie oglądania" },
   ];
 
   const filtered = activeFilter === "Wszystkie"
@@ -375,7 +398,7 @@ export default function HomePage() {
         <TrendingCarousel user={user} onSeriesAdded={refreshMySeries} />
 
 
-        {/* Lista użytkownika - gdy użytkownik jest zalogowany */}
+        {/* Lista użytkownika - gdy uykownik jest zalogowany */}
         {user && (
             <section className="mylist-section" id="mylist">
               <div className="container-lg">
@@ -410,13 +433,37 @@ export default function HomePage() {
 
                     return (
                         <Link to={`/series/${series.series_id}`} key={series.id} className="series-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <button
+                              onClick={(e) => handleDeleteSeries(e, series.series_id)}
+                              style={{
+                                position: 'absolute', top: '10px', left: '10px', zIndex: 10,
+                                background: 'rgba(0, 0, 0, 0.7)',
+                                border: '1px solid rgba(239, 68, 68, 0.5)',
+                                borderRadius: '50%', width: '32px', height: '32px',
+                                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                color: '#ef4444', cursor: 'pointer',
+                                backdropFilter: 'blur(4px)'
+                              }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
                           <div className="series-poster">
                           <div className="series-poster">
                             <img src={posterUrl} alt={series.details?.name} />
                             <div className="poster-overlay" />
                             <div className="poster-rating">
                               <Star size={10} style={{ fill: "#22d3ee", color: "#22d3ee" }} />
-                              {series.user_rating || "-"}
+                              {series.details?.vote_average ? series.details.vote_average.toFixed(1) : "Brak"}
+                            </div>
+                            <div style={{
+                              position: 'absolute', bottom: 0, left: 0, right: 0,
+                              height: '4px', background: 'rgba(255,255,255,0.2)', zIndex: 10
+                            }}>
+                              <div style={{
+                                width: `${pct > 100 ? 100 : pct}%`, height: '100%',
+                                background: 'linear-gradient(90deg, #8b5cf6, #ec4899)',
+                                boxShadow: '0 0 8px rgba(236,72,153,0.6)'
+                              }}></div>
                             </div>
                           </div>
                           <div className="series-body">
@@ -428,9 +475,6 @@ export default function HomePage() {
                             <div className="progress-row">
                               <span>{watched}/{totalEp} odc.</span>
                               <span>{pct > 100 ? 100 : pct}%</span>
-                            </div>
-                            <div className="progress-bar-bg">
-                              <div className="progress-bar-fill" style={{ width: `${pct > 100 ? 100 : pct}%` }} />
                             </div>
                           </div>
                           </div>
