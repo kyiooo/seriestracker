@@ -202,7 +202,7 @@ cd SeriesTracker
 Backend:
 
 ```env
-PORT=5000
+PORT=3000
 SUPABASE_URL= hidden
 SUPABASE_KEY= hidden
 ```
@@ -220,7 +220,15 @@ REACT_APP_API_URL=http://localhost:5000
 Budowanie i start:
 
 ```bash
-docker-compose up --build
+docker-compose up -d --build
+```
+
+Wyłączanie:
+
+```bash
+docker-compose down #zatrzymanie i usunięcie kontenerów oraz utworzonej sieci, zachowując pobrane obrazy i dane wolumenów
+docker-compose stop #zatrzymanie kontenerów bez ich usuwania, co pozwala na szybszy powrót do pracy poleceniem docker-compose start
+docker-compose down -y #usuwa kontenery, sieć oraz wszystkie powiązane wolumeny
 ```
 
 Aplikacja będzie dostępna:
@@ -228,13 +236,13 @@ Aplikacja będzie dostępna:
 Frontend:
 
 ```text
-http://localhost:3000
+http://localhost:5000
 ```
 
 Backend:
 
 ```text
-http://localhost:5000
+http://localhost:3000
 ```
 
 ---
