@@ -86,5 +86,7 @@ Wszystkie zmiany odpowiednio zcommitowałam.
 
 Utworzyłam nowy page `SeriesDetailsPage.js`, którego zadaniem jest pokazywanie szczegółów danego serialu (sezonów i odcinków).
 
+Stworzyłam zalogowanego użytkownika, któremu później nadam możliwość edytowania swojej listy seriali.
+
 Utworzyłam bazowego `Dockerfile` i `docker-compose.yml` jako przygotowanie środowiska deweloperskiego
 
