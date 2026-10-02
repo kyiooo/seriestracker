@@ -88,5 +88,38 @@ Utworzyłam nowy page `SeriesDetailsPage.js`, którego zadaniem jest pokazywanie
 
 Stworzyłam zalogowanego użytkownika, któremu później nadam możliwość edytowania swojej listy seriali.
 
-Utworzyłam bazowego `Dockerfile` i `docker-compose.yml` jako przygotowanie środowiska deweloperskiego
+Utworzyłam bazowego `Dockerfile` do backendu oraz w katalogu głównym projektu a później `docker-compose.yml` również w katalogu głównym projektu jako przygotowanie środowiska deweloperskiego.
+Następnie utworzyłam wykluczenia dla korzenia projektu czyli plik `.dockerignore` w głównym katalogu projektu oraz w backendzie. Chroni on przed wgrywaniem ciężkich i niepotrzebnych plików do obrazu.
+Podstawowy plik `.dockerignore` w obu miejscach:\
+![dockerignore](https://i.postimg.cc/7hRZCs1V/image.png)\
+Plik `backend/Dockerfile`:\
+![Dockerfile-backend](https://i.postimg.cc/kg171htM/image.png)\
+Plik `Dockerfile` dla frontendu:\
+![Dockerfile-frontend](https://i.postimg.cc/MGBpFJ28/image.png)\
+Plik `docker-compose.yml` w katalpgu głównym projektu:\
+![docker-compose](https://i.postimg.cc/L51q2FLX/image.png)
+
+Zrobiłam pierwsze testowe odpalenie kontenerów za pomocą komendy: `docker-compose up --build -d`\
+Całość zajęła 72.8s przy pierwszym zbudowaniu.\
+
+![docker-compose-start](https://i.postimg.cc/DwGsQsMx/image.png)\
+![docker-compose-up](https://i.postimg.cc/JzjDH8yD/image.png)\
+
+Sprawdziłam stan kontenerów komendą `docker-compose ps`:\
+![stan-kontenerow](https://i.postimg.cc/Hx8VHC1f/image.png)\
+Widać że uruchomiony jest tylko kontener frontendu a backendu wyłączył się zaraz po starcie.
+Żeby to rozwiązać użyłam komendy `docker-compose logs backend` by dowiedzieć się co bylo przyczyną.
+Brakowalo zależeności `@supabase/supabase-js` w `package.json`, więc ją zainstalowałam i ponownie uruchomiłam kontenery.
+Wystąpił ponownie ten sam błąd więc usunęłam stare kontenery wraz z ich zapisanym stanem wolumenów: `docker-compose down -v`.
+Następnie zbudowałam obraz bez użycia cache: `docker-compose build --no-cache`, `docker-compose up -d`.
+Przyczyną było ustawienie złej wersji node w `backend/Dockerfile`, po zmianie backend stoi bez zarzutów.
+
+
+![stan-kontenerow2](https://i.postimg.cc/Pqn0Mgt8/image.png)\
+Oba kontenery wstały i chodzą bez zarzutów
+
+Zrzutry ekranu z DockerDesktop:\
+![docker-desktop1](https://i.postimg.cc/zff2p89Q/image.png)\
+![docker-desktop2](https://i.postimg.cc/FHTDYwYm/image.png)\
+![docker-desktop3](https://i.postimg.cc/QdCcyCdp/image.png)\
 
