@@ -2,7 +2,13 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle, Clock, BookmarkPlus, Star, ChevronRight, ChevronLeft, Menu, X, TrendingUp, User, Settings, LogOut, Trash2 } from "lucide-react";
 import "../styles/HomePage.css";
-import {getTrending, addSeriesToList, getUserSeries, removeSeriesFromList} from "../services/seriesService";
+import {
+  getTrending,
+  addSeriesToList,
+  getUserSeries,
+  removeSeriesFromList,
+  searchSeries
+} from "../services/seriesService";
 import { supabase } from "../services/supabaseClient";
 
 function GlassCard({ children, className }) {
@@ -213,6 +219,232 @@ function TrendingCarousel({ user, onSeriesAdded}) {
   );
 }
 
+function SearchBarSection() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      const data = await searchSeries(query);
+      setResults(data || []);
+      setLoading(false);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  return (
+      <div style={{ maxWidth: "650px", margin: "25px auto", position: "relative", padding: "0 20px" }}>
+        <div style={{
+          display: "flex", alignItems: "center",
+          background: "rgba(24, 24, 27, 0.7)",
+          border: "1px solid rgba(139, 92, 246, 0.3)",
+          borderRadius: "14px", padding: "12px 18px",
+          backdropFilter: "blur(12px)",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"
+        }}>
+          <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Wyszukaj serial po tytule (np. Breaking Bad, Stranger Things)..."
+              style={{ background: "transparent", border: "none", color: "#fff", width: "100%", outline: "none", fontSize: "1rem" }}
+          />
+          {loading && <span style={{ fontSize: "0.8rem", color: "#a1a1aa", marginLeft: "10px" }}>Szukam...</span>}
+        </div>
+
+        {results.length > 0 && (
+            <div style={{
+              position: "absolute", top: "100%", left: "20px", right: "20px", marginTop: "8px",
+              background: "#121215", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "14px",
+              maxHeight: "400px", overflowY: "auto", zIndex: 100, boxShadow: "0 15px 35px rgba(0,0,0,0.6)"
+            }}>
+              {results.map((series) => {
+                const posterUrl = series.poster_path
+                    ? `https://image.tmdb.org/t/p/w92${series.poster_path}`
+                    : "https://via.placeholder.com/45x68?text=Brak";
+
+                const year = series.first_air_date ? series.first_air_date.substring(0, 4) : "B/D";
+                const rating = series.vote_average ? series.vote_average.toFixed(1) : "0.0";
+
+                return (
+                    <div
+                        key={series.id}
+                        onClick={() => {
+                          navigate(`/series/${series.id}`);
+                          setResults([]);
+                          setQuery("");
+                        }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "15px", padding: "12px 18px",
+                          cursor: "pointer", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", transition: "background 0.2s"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(139, 92, 246, 0.15)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      <img
+                          src={posterUrl}
+                          alt={series.name}
+                          style={{ width: "45px", height: "65px", objectFit: "cover", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}
+                      />
+
+                      {/* Informacje */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
+                        <div style={{ color: "#fff", fontWeight: 600, fontSize: "1rem" }}>
+                          {series.name || series.original_name}
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.82rem", color: "#a1a1aa" }}>
+                          <span>{year}</span>
+                          <span>{rating}</span>
+                          <span style={{ color: "#8b5cf6", marginLeft: "auto", fontWeight: 500 }}>
+                      Zobacz szczegóły &rarr;
+                    </span>
+                        </div>
+                      </div>
+                    </div>
+                );
+              })}
+            </div>
+        )}
+      </div>
+  );
+}
+
+function AddSeriesModal({ isOpen, onClose, onSeriesAdded }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      const data = await searchSeries(query);
+      setResults(data || []);
+      setLoading(false);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  if (!isOpen) return null;
+
+  return (
+      <div style={{
+        position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(6px)",
+        display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000,
+        padding: "20px"
+      }}>
+        <div style={{
+          background: "#18181b", border: "1px solid rgba(139, 92, 246, 0.3)",
+          borderRadius: "16px", width: "100%", maxWidth: "555px", padding: "25px",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.6)", position: "relative",
+          maxHeight: "85vh", display: "flex", flexDirection: "column"
+        }}>
+          {/* Nagłówek modala */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <h3 style={{ color: "#fff", margin: 0, fontSize: "1.2rem" }}>Wyszukaj i dodaj serial</h3>
+            <button
+                onClick={onClose}
+                style={{ background: "transparent", border: "none", color: "#a1a1aa", fontSize: "1.5rem", cursor: "pointer" }}
+            >
+              &times;
+            </button>
+          </div>
+
+          {/* Input wyszukiwania */}
+          <div style={{
+            display: "flex", alignItems: "center",
+            background: "rgba(255, 255, 255, 0.05)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "10px", padding: "10px 15px", marginBottom: "15px"
+          }}>
+            <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Wpisz tytuł np. Breaking Bad..."
+                autoFocus
+                style={{ background: "transparent", border: "none", color: "#fff", width: "100%", outline: "none", fontSize: "1rem" }}
+            />
+            {loading && <span style={{ fontSize: "0.8rem", color: "#a1a1aa" }}>Szukam...</span>}
+          </div>
+
+          {message && <p style={{ color: "#10b981", fontSize: "0.9rem", textAlign: "center", margin: "5px 0" }}>{message}</p>}
+
+          {/* Wyniki wyszukiwania w modalu */}
+          <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "10px" }}>
+            {results.map((series) => {
+              const posterUrl = series.poster_path
+                  ? `https://image.tmdb.org/t/p/w92${series.poster_path}`
+                  : "https://via.placeholder.com/45x68?text=Brak";
+
+              return (
+                  <div
+                      key={series.id}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        background: "rgba(255, 255, 255, 0.03)", padding: "10px 12px", borderRadius: "10px",
+                        border: "1px solid rgba(255, 255, 255, 0.05)"
+                      }}
+                  >
+                    <div
+                        onClick={() => { navigate(`/series/${series.id}`); onClose(); }}
+                        style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", flex: 1 }}
+                    >
+                      <img src={posterUrl} alt={series.name} style={{ width: "40px", height: "60px", objectFit: "cover", borderRadius: "6px" }} />
+                      <div>
+                        <div style={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem" }}>{series.name || series.original_name}</div>
+                        <div style={{ color: "#a1a1aa", fontSize: "0.8rem" }}>
+                          {series.first_air_date ? series.first_air_date.substring(0, 4) : "B/D"} · ⭐ {series.vote_average ? series.vote_average.toFixed(1) : "0.0"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Przycisk szybkiego dodawania z modala */}
+                    <button
+                        onClick={async () => {
+                          const res = await addSeriesToList(series.id, "Planowane");
+                          if(res.success) {
+                            setMessage(`Dodano "${series.name}"!`);
+                            if(onSeriesAdded) onSeriesAdded();
+                            setTimeout(() => setMessage(""), 2500);
+                          } else {
+                            setMessage(res.message);
+                          }
+                        }}
+                        style={{
+                          background: "rgba(139, 92, 246, 0.2)", color: "#c4b5fd", border: "1px solid rgba(139, 92, 246, 0.4)",
+                          padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold"
+                        }}
+                    >
+                      + Dodaj
+                    </button>
+                  </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+  );
+}
+
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -224,6 +456,7 @@ export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState("Wszystkie");
   const filters = ["Wszystkie", "W trakcie", "Ukończone", "Planowane"];
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // Odświezanie listy po dodaniu serialu
   // Nie działa z niewiadomych przyczyn
   const refreshMySeries = async () => {
@@ -394,7 +627,7 @@ export default function HomePage() {
               </div>
             </section>
         )}
-
+        <SearchBarSection/>
         <TrendingCarousel user={user} onSeriesAdded={refreshMySeries} />
 
 
@@ -486,10 +719,14 @@ export default function HomePage() {
                       </div>
                   )}
 
-                  <a href="#discover" className="add-card" style={{ textDecoration: 'none' }}>
+                  <div
+                      onClick={() => setIsModalOpen(true)}
+                      className="add-card"
+                      style={{ textDecoration: 'none', cursor: 'pointer' }}
+                  >
                     <BookmarkPlus size={28} />
                     <span>Dodaj z trendów</span>
-                  </a>
+                  </div>
                 </div>
               </div>
             </section>
@@ -552,6 +789,12 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
+
+        <AddSeriesModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSeriesAdded={refreshMySeries}
+        />
       </div>
   );
 }

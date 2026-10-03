@@ -105,3 +105,12 @@ export const updateSeriesProgress = async (seriesId, updates) => {
     }
 };
 
+export const searchSeries = async (query) => {
+    try {
+        const response = await axios.get(`${API_URL}/search?query=${encodeURIComponent(query)}`);
+        return response.data;
+    } catch (error) {
+        console.error("Błąd wyszukiwania seriali:", error);
+        return [];
+    }
+};

@@ -174,7 +174,31 @@ app.patch('/api/user-series/:seriesId', verifyToken, async (req, res) => {
     }
 });
 
-
-app.listen(PORT, () => {
-    console.log(`Serwer działa na porcie http://localhost:${PORT}/api/health`);
+app.get("/api/search", async (req, res) => {
+    try {
+        const query = req.query.query;
+        if (!query) {
+            return res.status(400).json({ message: "Brak frazy wyszukiwania" });
+        }
+        const response = await axios.get(
+            `https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(query)}&language=pl-PL`,
+            {
+                headers: {
+                    accept: 'application/json',
+                    Authorization: `Bearer ${process.env.TMDB}`
+                }
+            }
+        );
+        res.json(response.data.results);
+    } catch (error) {
+        console.error("Błąd wyszukiwania TMDb:", error);
+        res.status(500).json({ message: "Błąd serwera przy wyszukiwaniu" });
+    }
 });
+
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`Serwer działa na porcie http://localhost:${PORT}/api/health`);
+    });
+}
+export default app;
