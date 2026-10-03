@@ -19,7 +19,7 @@ SeriesTracker 🎬 to aplikacja webowa służąca do zarządzania osobistą list
 - Śledzenie postępu oglądania
 - Oznaczanie obejrzanych odcinków
 - Zarządzanie statusem:
-  - Oglądane
+  - Wszystkie
   - W trakcie
   - Ukończone
   - Planowane
@@ -57,97 +57,104 @@ SeriesTracker 🎬 to aplikacja webowa służąca do zarządzania osobistą list
 
 ## 🏗 Architektura systemu
 ```
-                    ┌──────────────────┐
-                    │   Użytkownik     │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                 ┌─────────────────────────────┐
-                 │      React Frontend         │
-                 │─────────────────────────────│
-                 │ • Interfejs użytkownika     │
-                 │ • Routing                   │
-                 │ • Axios                     │
-                 └───────────┬─────────────────┘
-                             │
+                              ┌──────────────────────┐
+                              │      Użytkownik      │
+                              └──────────┬───────────┘
+                                         │
+                                         ▼
+                    ┌────────────────────────────────────┐
+                    │          React Frontend            │
+                    │────────────────────────────────────│
+                    │ • Interfejs użytkownika            │
+                    │ • React Router                     │
+                    │ • Axios                            │
+                    │ • CSS                              │
+                    │ • Supabase Client                  │
+                    └─────────┬───────────────┬──────────┘
+                              │               │
+                    HTTP/REST │               │ Auth / Session
+                    JSON      │               │
+                              ▼               ▼
+              ┌──────────────────────┐   ┌─────────────────────┐
+              │ Node.js + Express    │   │    Supabase Auth    │
+              │      REST API        │   │─────────────────────│
+              │──────────────────────│   │ • Rejestracja       │
+              │ • Endpointy REST     │   │ • Logowanie         │
+              │ • Logika backendu    │   │ • Sesja użytkownika │
+              │ • Middleware         │   │ • JWT / Access Token│
+              │ • verifyToken        │   └──────────┬──────────┘
+              └──────┬────────┬──────┘              │
+                     │        │                     │
+          Axios/HTTP │        │ Supabase API        │
+                     │        │                     │
+                     ▼        ▼                     ▼
+        ┌────────────────┐  ┌────────────────────────────┐
+        │    TMDb API    │  │         Supabase           │
+        │────────────────│  │────────────────────────────│
+        │ • Trendy       │  │ PostgreSQL Database        │
+        │ • Seriale      │  │                            │
+        │ • Sezony       │  │ • profiles                 │
+        │ • Odcinki      │  │ • user_series              │
+        └────────────────┘  │ • dane użytkownika         │
+                            │ • postęp oglądania         │
+                            └────────────────────────────┘
 
-                        HTTP / REST
 
-                             │
-                             ▼
-        ┌──────────────────────────────────────────┐
-        │            Docker Environment (Compose)  │
-        │                                          │
-        │   ┌────────────────────────────────────┐ │
-        │   │          Node.js + Express API     │ │
-        │   │────────────────────────────────────│ │
-        │   │ • Endpointy API                    │ │
-        │   │ • Logika biznesowa                 │ │
-        │   │ • Middleware                       | │
-        │   │ • Walidacja danych                 │ │
-        │   └─────────────┬──────────────────────┘ │
-        │                 │                        │
-        │                 ▼                        │
-        │         ┌─────────────────┐              │
-        │         │ Jest            │              │
-        │         │ Unit Test       │              │ 
-        |         │ API Integration │              │ 
-        │         └─────────────────┘              │
-        └──────────────────────────────────────────┘
-                             │
+ ┌─────────────────────────────────────────────────────────────────┐
+ │                  Docker / Docker Compose                        │
+ │─────────────────────────────────────────────────────────────────│
+ │                                                                 │
+ │      ┌────────────────────┐       ┌────────────────────┐        │
+ │      │ Frontend Container │       │ Backend Container  │        │
+ │      │ React / Node 22    │       │ Node 22 / Express  │        │
+ │      │ Port 5000          │       │ Port 3000          │        │
+ │      └────────────────────┘       └────────────────────┘        │
+ │                                                                 │
+ └─────────────────────────────────────────────────────────────────┘
 
-                        CRUD / AUTH API
 
-                             │
-                             ▼
-                ┌─────────────────────────┐
-                │       Supabase          │
-                │─────────────────────────│
-                │ PostgreSQL Database     │
-                │ Auth / JWT              │
-                └───────────┬─────────────┘
-                            │
-                            ▼
-                 ┌───────────────────────┐
-                 │    Render Cloud       │
-                 │ Production Deployment │
-                 └───────────────────────┘
+                    ┌──────────────────────────┐
+                    │          Jest            │
+                    │──────────────────────────│
+                    │ • Testy jednostkowe      │
+                    │ • Testy integracyjne     │
+                    │ • Testowanie API         │
+                    └──────────────────────────┘
+
+
+                    ┌──────────────────────────┐
+                    │       Render Cloud       │
+                    │──────────────────────────│
+                    │ Production Deployment    │
+                    │ SeriesTracker            │
+                    └──────────────────────────┘
 ```
 ---
 
 ## 🗄 Schemat bazy danych
 
-1. Users:
-- user_series
-- watched_episodes
-- favorites
+1. profiles:
+- id
+- username
+- email
+- created_at
 
-2. Series:
-- seasons
-- series_genres
-- user_series
-- favorites
-3. Seasons: 
-- episodes
-4. Episodes:
-- watched_episodes
-5. Genres:
-- series_genres
+2. user_series:
+- id
+- user_id
+- series_id
+- status
+- episodes_watched
+- user_rating
+- created_at
 
-#### Tabele: 
-+ users – przechowuje dane użytkownika 
-+ series – przechowuje dane seriali 
-+ genres – przechowuje gatunek seriali 
-+ series_genres – łączy seriale z gatunkiem 
-+ seasons – przechowuje sezony seriali 
-+ episodes – przechowuje odcinki sezonów 
-+ user_series – przechowuje seriale dodane do biblioteki użytkownika 
-+ watched_episodes – zapisuje obejrzane odcinki użytkownika 
-+ favorites – przechowuje ulubione seriale użytkownika 
+### Tabele:
 
-Baza danych będzie przechowywać użytkowników, seriale, sezony, odcinki oraz informacje o postępie oglądania. Każdy użytkownik będzie mógł dodawać seriale do własnej biblioteki, oznaczać odcinki jako obejrzane, ustawiać status oglądania oraz dodawać seriale do ulubionych.
+Tabela `profiles` przechowuje dane o profilach użytkowników
 
-![schematbazydanych](https://i.postimg.cc/wjRFfV7d/image.png)
+Tabela `user_series` przechowuje informacje o serialach przypisanych do konkretnego użytkownika oraz o postępach w ich oglądaniu
+
+![schematbazydanych](https://i.postimg.cc/7L5GGnDH/image.png)
 
 --- 
 
@@ -203,6 +210,7 @@ Backend:
 
 ```env
 PORT=3000
+TMDB= hidden
 SUPABASE_URL= hidden
 SUPABASE_KEY= hidden
 ```
@@ -210,6 +218,7 @@ SUPABASE_KEY= hidden
 Frontend:
 
 ```env
+PORT=5000
 REACT_APP_API_URL=http://localhost:5000
 ```
 

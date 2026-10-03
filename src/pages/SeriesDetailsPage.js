@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate} from "react-router-dom";
+import { useParams, Link} from "react-router-dom";
 import {
     getSeriesDetails,
     getSeasonDetails,
     getUserSeries,
     updateSeriesProgress,
-    removeSeriesFromList
+    removeSeriesFromList,
+    addSeriesToList
 } from "../services/seriesService";
 import "../styles/SeriesDetailsPage.css";
 
@@ -16,25 +17,46 @@ export default function SeriesDetailsPage() {
     const [activeSeason, setActiveSeason] = useState(null);
     const [episodes, setEpisodes] = useState([]);
 
-    // Nowe stany do obsługi postępu użytkownika
+    // Stany do obsługi postępu użytkownika i dodawania
     const [userProgress, setUserProgress] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [feedbackMsg, setFeedbackMsg] = useState("");
 
-    const navigate = useNavigate();
     const handleRemoveSeries = async () => {
         const result = await removeSeriesFromList(id);
         if (result.success) {
-            navigate("/"); // Po usunięciu powrót na stronę glówną
+            setUserProgress(null); // Przełącza widok na przycisk dodawania
         }
     };
 
+    const handleAddSeries = async () => {
+        if (isUpdating) return;
+        setIsUpdating(true);
+        setFeedbackMsg("");
+
+        const result = await addSeriesToList(Number(id), "Planowane");
+
+        if (result.success) {
+            const mySeriesList = await getUserSeries();
+            const progress = mySeriesList.find((s) => s.series_id === Number(id));
+            if (progress) {
+                setUserProgress(progress);
+            }
+            setFeedbackMsg("Dodano do listy!");
+        } else {
+            setFeedbackMsg(result.message || "Błąd dodawania");
+        }
+
+        setIsUpdating(false);
+        setTimeout(() => setFeedbackMsg(""), 3000);
+    };
 
     useEffect(() => {
         const fetchDetails = async () => {
             // 1. Pobieramy detale z TMDb
             const data = await getSeriesDetails(id);
             if (data && data.seasons) {
-                // Pozbywamy się sezonu 0 (odcinki specjalne), żeby nie psuły licznika
+                // Pozbywamy się sezonu 0 (odcinki specjalne)
                 data.seasons = data.seasons.filter(s => s.season_number > 0);
             }
             setSeries(data);
@@ -90,13 +112,10 @@ export default function SeriesDetailsPage() {
         const currentWatched = userProgress.episodes_watched || 0;
 
         const isAlreadyWatched = clickedAbsoluteNum <= currentWatched;
-        // Jeśli był obejrzany, cofamy licznik o 1 przed kliknięty odcinek
-        // Jeśli to odcinek "do przodu", to ustawiamy nowy licznik 
         const newWatchedCount = isAlreadyWatched ? clickedAbsoluteNum - 1 : clickedAbsoluteNum;
 
         const totalEps = series.number_of_episodes;
 
-        // Jeśli cofniemy na zero obejrzanych, zmieniamy z powrotem na "Planowane"
         let newStatus = "W trakcie";
         if (newWatchedCount >= totalEps) newStatus = "Ukończone";
         if (newWatchedCount === 0) newStatus = "Planowane";
@@ -156,32 +175,54 @@ export default function SeriesDetailsPage() {
                                 {series.overview}
                             </p>
                         )}
-                        <button
-                            onClick={handleRemoveSeries}
-                            style={{
-                                marginTop: "15px", background: "transparent",
-                                border: "1px solid rgba(239, 68, 68, 0.5)", color: "#ef4444",
-                                padding: "6px 12px", borderRadius: "8px", cursor: "pointer",
-                                fontSize: "0.85rem", fontWeight: "bold"
-                            }}
-                        >
-                            Usuń serial z listy
-                        </button>
 
-                        {/* WIDŻET POSTĘPU UŻYTKOWNIKA */}
+                        {/* Jeśli serial jest na liście to usuń a jeżeli nie ma to dodaj*/}
                         {userProgress ? (
-                            <div style={{ marginTop: "2rem", background: "rgba(0,0,0,0.4)", padding: "1rem 1.5rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                                    <span style={{ color: "#a1a1aa" }}>Status: <strong style={{ color: "#22d3ee" }}>{userProgress.status}</strong></span>
-                                    <span style={{ color: "#e4e4f0", fontWeight: "bold" }}>{watched} / {totalEpisodes} obejrzanych ({progressPercent > 100 ? 100 : progressPercent}%)</span>
+                            <>
+                                <button
+                                    onClick={handleRemoveSeries}
+                                    style={{
+                                        marginTop: "15px", background: "transparent",
+                                        border: "1px solid rgba(239, 68, 68, 0.5)", color: "#ef4444",
+                                        padding: "6px 12px", borderRadius: "8px", cursor: "pointer",
+                                        fontSize: "0.85rem", fontWeight: "bold"
+                                    }}
+                                >
+                                    Usuń serial z listy
+                                </button>
+
+                                {/* WIDŻET POSTĘPU UŻYTKOWNIKA */}
+                                <div style={{ marginTop: "2rem", background: "rgba(0,0,0,0.4)", padding: "1rem 1.5rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
+                                        <span style={{ color: "#a1a1aa" }}>Status: <strong style={{ color: "#22d3ee" }}>{userProgress.status}</strong></span>
+                                        <span style={{ color: "#e4e4f0", fontWeight: "bold" }}>{watched} / {totalEpisodes} obejrzanych ({progressPercent > 100 ? 100 : progressPercent}%)</span>
+                                    </div>
+                                    <div style={{ height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
+                                        <div style={{ width: `${progressPercent > 100 ? 100 : progressPercent}%`, height: "100%", background: "linear-gradient(90deg, #8b5cf6, #ec4899)", transition: "width 0.4s ease-out" }}></div>
+                                    </div>
                                 </div>
-                                <div style={{ height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
-                                    <div style={{ width: `${progressPercent > 100 ? 100 : progressPercent}%`, height: "100%", background: "linear-gradient(90deg, #8b5cf6, #ec4899)", transition: "width 0.4s ease-out" }}></div>
-                                </div>
-                            </div>
+                            </>
                         ) : (
-                            <div style={{ marginTop: "2rem", padding: "1rem", borderRadius: "12px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
-                                Ten serial nie znajduje się na Twojej liście.
+                            <div style={{ marginTop: "2rem", display: "flex", alignItems: "center", gap: "15px" }}>
+                                <button
+                                    onClick={handleAddSeries}
+                                    disabled={isUpdating}
+                                    style={{
+                                        background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+                                        color: "#fff", border: "none",
+                                        padding: "10px 20px", borderRadius: "10px", cursor: isUpdating ? "wait" : "pointer",
+                                        fontSize: "0.95rem", fontWeight: "bold",
+                                        boxShadow: "0 4px 15px rgba(139, 92, 246, 0.4)",
+                                        transition: "opacity 0.2s"
+                                    }}
+                                >
+                                    {isUpdating ? "Dodawanie..." : "+ Dodaj do listy"}
+                                </button>
+                                {feedbackMsg && (
+                                    <span style={{ fontSize: "0.9rem", color: feedbackMsg.includes("Błąd") ? "#ef4444" : "#10b981" }}>
+                                        {feedbackMsg}
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>
@@ -210,7 +251,6 @@ export default function SeriesDetailsPage() {
                 <section className="seasons-section">
                     <div className="section-heading">
                         <div><h2>Lista sezonów</h2></div>
-                        {/*<span className="season-count-badge">{series.seasons.length} pozycji</span>*/}
                     </div>
 
                     <div className="seasons-list">
@@ -255,7 +295,6 @@ export default function SeriesDetailsPage() {
                                                 ) : (
                                                     <div className="episodes-list">
                                                         {episodes.map((ep) => {
-                                                            // Sprawdzamy czy odcinek jest już obejrzany
                                                             const absoluteNum = calculateAbsoluteEpisodeNumber(season.season_number, ep.episode_number);
                                                             const isWatched = userProgress && absoluteNum <= (userProgress.episodes_watched || 0);
 
@@ -280,7 +319,6 @@ export default function SeriesDetailsPage() {
                                                                             {ep.overview || "Brak opisu dla tego odcinka."}
                                                                         </p>
 
-                                                                        {/* Dolny pasek z informacjami i przyciskiem akcji */}
                                                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "1rem" }}>
                                                                             <div className="episode-meta" style={{ marginTop: 0 }}>
                                                                                 <span>⏱ <strong>{ep.runtime || "?"} min</strong></span>
