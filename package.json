@@ -12,6 +12,8 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.20.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.6",
@@ -23,7 +25,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "cross-env NODE_ENV=test jest --coverage --forceExit --detectOpenHandles",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -45,6 +47,21 @@
     ]
   },
   "devDependencies": {
-    "jest": "^27.5.1"
+    "@babel/core": "^8.0.6",
+    "@babel/preset-env": "^8.0.6",
+    "@babel/preset-react": "^8.0.1",
+    "axios-mock-adapter": "^2.1.0",
+    "babel-jest": "^30.5.2",
+    "cross-env": "^10.1.0",
+    "jest": "^27.5.1",
+    "supertest": "^7.3.1"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.jsx?$": "babel-jest"
+    },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!axios)/"
+    ]
   }
 }

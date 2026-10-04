@@ -164,7 +164,6 @@ Projekt wykorzystuje testy jednostkowe i integracyjne w celu zapewnienia poprawn
 
 Zakres testów obejmuje:
 
-- logowanie i rejestrację użytkownika
 - endpointy API
 - walidację danych wejściowych
 - logikę biznesową
@@ -177,20 +176,35 @@ Minimalny wymagany poziom pokrycia kodu testami:
 60%
 ```
 
+Aktualny poziom pokrycia kodu testami:
+
+Pokrycie instrukcji:
+```text
+81.87%
+```
+
+Pokrycie linii kodu:
+```text
+85.06%
+```
+
 Uruchomienie testów:
 
 ```bash
 npm test
 ```
 
-Uruchomienie wraz z raportem pokrycia:
-
+Przykładowy test dodawania serialu do listy użytkownika:
 ```bash
-npm run test:coverage
-```
+test("addSeriesToList sukces", async () => {
+        supabase.auth.getSession.mockResolvedValueOnce({ data: { session: mockSession } });
+        axios.post.mockResolvedValueOnce({ data: { message: "Dodano" } });
 
-Przykładowy test:\
--do dodania-
+        const res = await addSeriesToList(1, "Planowane");
+        expect(res.success).toBe(true);
+        expect(res.message).toBe("Dodano");
+    });
+```
 
 ---
 
@@ -220,6 +234,8 @@ Frontend:
 ```env
 PORT=5000
 REACT_APP_API_URL=http://localhost:5000
+REACT_APP_SUPABASE_URL= hidden
+REACT_APP_SUPABASE_KEY= hidden
 ```
 
 ---
