@@ -725,7 +725,7 @@ export default function HomePage() {
                       style={{ textDecoration: 'none', cursor: 'pointer' }}
                   >
                     <BookmarkPlus size={28} />
-                    <span>Dodaj z trendów</span>
+                    <span>Dodaj serial</span>
                   </div>
                 </div>
               </div>

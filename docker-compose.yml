@@ -3,28 +3,82 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+
     ports:
       - "3000:3000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+
     env_file:
       - ./backend/.env
+
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - seriestracker-network
+
+    restart: unless-stopped
+
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
+
     ports:
       - "5000:5000"
-    volumes:
-      - .:/app
-      - /app/node_modules
+
+    env_file:
+      - ./.env
+
     environment:
-      - PORT=5000
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
+      PORT: 5000
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:5000"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+    networks:
+      - seriestracker-network
+
+    restart: unless-stopped
+
     stdin_open: true
     tty: true
+
+
+networks:
+  seriestracker-network:
+    driver: bridge

@@ -1,4 +1,12 @@
 node_modules
-npm-debug.log
-.git
+coverage
+
 .env
+.env.local
+.env.development
+.env.production
+.env.test
+
+npm-debug.log
+yarn-debug.log
+yarn-error.log
