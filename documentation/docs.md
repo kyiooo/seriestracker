@@ -11,7 +11,7 @@
 
 ---
 
-### FAZA 1 Inicjalizacja projektu oraz konfiguracja środowiska
+## FAZA 1 Inicjalizacja projektu oraz konfiguracja środowiska
 
 1. Upewniłam się, że mam zainstalowanego Gita, Node'a i menedżera pakietów npm, po czym skonfigurowałam Gita w terminalu.
 
@@ -74,7 +74,7 @@ git commit -m "Initial commit: Project structure"
 Później połączyłam lokalne repozytorium ze zdalnym:
 https://github.com/kyiooo/seriestracker.git
 
-### FAZA 1,5 Tworzenie aplikacji
+## FAZA 1,5 Tworzenie aplikacji
 
 Kolejnym etapem było zbudowanie przeze mnie aplikacji, na początku utworzyłam nowy branch `feature/login-page` oraz w następnych etapach `feature/register-page`. W obu przypadkach najpierw zajęłam się ui.
 W bazie danych utorzyłam specjalne polices by dane byly bezpieczne, skonfirugowałam potwierdzenie rejestracji przez email.
@@ -123,3 +123,240 @@ Zrzutry ekranu z DockerDesktop:\
 ![docker-desktop2](https://i.postimg.cc/FHTDYwYm/image.png)\
 ![docker-desktop3](https://i.postimg.cc/QdCcyCdp/image.png)\
 
+## FAZA 2
+
+Do testów użyłam Jest. Utworzyłam pliki `server.integration.test.js`, `server.test.js` w backendzie oraz plik `seriesService.test.js` w nowym folderze /src/tests.
+Zainstalowałam nowe zależności potrzebne do pracy z testami:
+
+W backendzie:
+```
+npm install cross-fetch 
+npm install ws 
+```
+
+cross-fetch - Służy do obsługi klasycznych zapytań HTML, w moim przypadku był konieczny ponieważ środowisko testowe Jest nie miało ich wbudowanych globalnie a cross-fetch dodał brakujące obiekty typu Headers, Request i Response.
+WebSocket - Używam do komunikacji w czase rzeczywistym podczas testów integracyjnych. Biblioteka supabase potrzebowała tego importu ponieważ w momencie tworzenia klienta uruchamia się moduł Realtime do nasłuchiwania zdarzeń. Klient supabase wymaga konstruktora websocket nawet jeśli nie używam aplikacji na żywo. W skrócie WebSocket służy do utrzymania połączenia którego supabase wymaga przy starcie.
+
+W głównym katalogu projektu:
+```
+npm install --save-dev jest supertest axios-mock-adapter 
+npm install --save-dev babel-jest @babel/core @babel/preset-env @babel/preset-react
+npm install --save-dev cross-env  
+```
+Instalacje te mają na celu dostarczenie środowiska testowego oraz narzędzi wspomagających.
+
+---
+
+jest - używany przeze mnie główny framework do uruchamiania testów\
+supertest - biblioteka do testowania punktów końcowych (API HTTP) bez konieczności ręcznego uruchamiania serwera\
+axios-mock-adapter - narzędzie do atrapowania (mockowania) zapytań HTTP wykonywanych przez bibliotekę Axios\
+babel-jest itd. - pakiet narzędzi do tłumaczenia nowoczesnego kodu JS oraz Reacta(JSX) na wersję rozumiącą przez środowisko Jest\
+cross-env - narzędzie gwarantujące poprawne ustawienie zmiennych środowiskowych niezależnie od systemu
+
+Do package.json w głównym katalogu projektu dodałam nowy scripts: `"test": "cross-env NODE_ENV=test jest --coverage --forceExit --detectOpenHandles",` , który ma na celu uruchomienie testów w środowisku testowym z ustawioną zmienną `NODE_ENV=test` przy jednoczesnym generowaniu raportu pokrycia kodu `--coverage`. Flagi `--forceExit` oraz `--detectOpenHandles` wymuszają zakończenie procesu po wykonaniu testów oraz pomagają zidentyfikować niezamknięte połączenia.
+
+### Testy integracyjne backendu z bazą danych Supabase
+
+W celu sprawdzenia poprawności komunikacji pomiędzy backendem aplikacji a bazą danych Supabase przygotowałam zestaw testów integracyjnych.
+Głównym celem testów jest sprawdzenie, czy poszczególne endpointy backendu prawidłowo wykonują operacje na rzeczywistej bazie danych oraz czy aplikacja odpowiednio reaguje zarówno na poprawne żądania, jak i sytuacje błędne, np. próbę ponownego dodania tego samego serialu.
+
+Na początku Middleware odpowiedzialny za weryfikację tokenu został zamockowany. Do żądania wstrzykiwany jest użytkownik posiadający UUID konta utworzonego w bazie specjalnie na potrzeby testów. Pozwala to testować endpointy wymagające autoryzacji bez konieczności każdorazowego wykonywania pełnego procesu logowania i uzyskiwania tokenu. Jest to potrzebne ze względu na limity ustawione przez Supabase.
+```
+jest.mock("./authMiddleware.js", () => ({
+    verifyToken: (req, res, next) => {
+        req.user = { id: "6f9b63f9-a304-4ed0-ba78-04b7e3acd326" };
+        next();
+    }
+}));
+```
+
+Czas do wykonania się zapytania został ustawiony na 10 sekund w umożliwienia przeprowadzenia testów nawet jeśli połączenie byłoby słabe: `jest.setTimeout(10000);`.\
+Do testów wykorzystałam specjalnie przygotowane ID serialu 999999. Podane id serialu jest fałszywe, prawdopodobnie nie istniejące w api dlatego, żeby przetestować jedynie możliwość dodania serialu do planowanych oraz w celu sprawdzenia czy backend rozpoznaje próbę dodania duplikatu i usunięcie wpisu z bazy.
+```
+describe("Testy Integracyjne: Express <-> Supabase", () => {
+    const testSeriesId = 999999;
+```
+---
+
+W pliku `server.integration.test.js` są 3 następujące testy:
+
+Weryfikacja poprawnego dodania nowego serialu:
+```
+test("1. POST /api/user-series - zapis dodanego serialu", async () => {
+        const res = await request(app)
+            .post("/api/user-series")
+            .send({ seriesId: testSeriesId, status: "Planowane" });
+
+        expect(res.statusCode).toBe(201);
+        expect(res.body.message).toBe("Serial pomyłśnie dodany do listy");
+    });
+```
+
+Sprawdzanie duplikatów w bazie:
+```
+test("2. POST /api/user-series - blokowanie duplikatu", async () => {
+        const res = await request(app)
+            .post("/api/user-series")
+            .send({ seriesId: testSeriesId });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.message).toContain("Ten serial już znajjduje się na twjej liście");
+    });
+```
+
+Usunięcie serialu z listy:
+```
+test("3. DELETE /api/user-series/:seriesId - fizyczne usunięcie", async () => {
+        const res = await request(app).delete(`/api/user-series/${testSeriesId}`);
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.message).toBe("Serial usunięty z listy.");
+    });
+```
+Po wykonaniu testu zastosowany na początku pliku blok afterAll odpowiada za usunięcie z bazy testowych wpisów powiązanych z ID podanego wyżej uzytkownika. Takie rozwiazanie pozwala na utrzymanie czystości bazy.
+```
+afterAll(async () => {
+        await supabase
+            .from("user_series")
+            .delete()
+            .eq("user_id", "6f9b63f9-a304-4ed0-ba78-04b7e3acd326");
+    });
+```
+
+---
+
+### Testy jednostkowe w backendzie
+
+Utworzyłam nowy plik - interpreter JS na język Jesta `babel.config.json` oraz uzupełniłam go o następujące linijki:
+```
+{
+  "presets": [
+    ["@babel/preset-env", { "targets": { "node": "current" } }],
+    ["@babel/preset-react", { "runtime": "automatic" }]
+  ]
+}
+```
+
+Babel preset-env odpowiada za tłumaczenie najnowszych funkcji JS na wersję dopasowaną do wersji NodeJS którą aktualnie posiadamy.
+
+Babel preset-react tłumaczy składnię JSX, czyli używanie znaczników typu div wewnątrz pliku JS.
+Konieczne było użycie Babela dlatego, że Jest domyślnie jest ukierunkowany na starszy standard exportów czyli require. Bez babela testy zawieszały się z błędem.
+
+---
+
+Identycznie jak przy testach integracyjnych test jednostkowy oraz testy endpointów rozpoczynam od oszukania autoryzacji, wprowadzam fałszywego użytkownika, symulując status jako zalogowany użytkownik w pliku `server.test.js`.
+```
+jest.mock("./authMiddleware.js", () => ({
+    verifyToken: (req, res, next) => {
+        req.user = { id: "test-user-id" };
+        next();
+    }
+}));
+
+jest.mock("axios");
+jest.mock("./subabaseClient.js", () => {
+    const chainable = {
+        from: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+    };
+    return { supabase: chainable };
+});
+```
+
+Zastosowane zostało tutaj odcięcie zewnętrznego API w celu poprawienia wydajności testów. Nie wysyłam prawdziwych zapytań tylko używam mocka na bibliotece axios do pobierania np. detali serialu z TMDB.
+Żeby uniknąć problemów z połączeniem do bazy, klient supabase został podmieniony na fikcyjnego użytkownika, dzięki temu mock omijał całe połączenie i zwracał ustalony wynik.
+
+Dzięki takiemu rozwiązaniu zyskuję korzyści w postaci:
+Możliwość szybkiego testowania: prawdziwe zapytanie do bazy albo API trwa zdecydowanie dłużej, zwłaszcza przy kiepskim połączeniu.
+W przypadku kiedy serwer TMDB miałby awarię lub nie byłoby połączenia internetowego prawdziwe zapytanie skończyłoby się błędem, mimo, że kod byłby napisany poprawnie. Takie rozwiązanie daje więcej kontroli nad prowadzeniem testów.
+
+---
+
+Testy endpointów PUBLICZNYCH sprawdzają poprawne działanie ścieżek pobierających szczegóły seriali oraz sezonów z zewnętrznego api.
+```
+test("GET /api/series/:id", async () => {
+        axios.get.mockResolvedValueOnce({ data: { name: "Test" } });
+        const res = await request(app).get("/api/series/1");
+        expect(res.statusCode).toBe(200);
+        expect(res.body.name).toBe("Test");
+    });
+
+test("GET /api/series/:id błąd", async () => {
+        axios.get.mockRejectedValueOnce(new Error("Error"));
+        const res = await request(app).get("/api/series/1");
+        expect(res.statusCode).toBe(500);
+    });
+
+test("GET /api/series/:id/season/:seasonNumber", async () => {
+        axios.get.mockResolvedValueOnce({ data: { episodes: [] } });
+        const res = await request(app).get("/api/series/1/season/1");
+        expect(res.statusCode).toBe(200);
+    });
+```
+
+Testy endpointów chronionych weryfikuja operacje na liście seriali uzytkownika, takie jak dodawanie, kontrolę duplikatów, czy aktualizację postępu w oglądaniu.
+```
+test("POST /api/user-series sukces", async () => {
+        supabase.insert.mockResolvedValueOnce({ data: null, error: null });
+        const res = await request(app).post("/api/user-series").send({ seriesId: 1 });
+        expect(res.statusCode).toBe(201);
+    });
+
+test("POST /api/user-series błąd duplikatu", async () => {
+        supabase.insert.mockResolvedValueOnce({ data: null, error: { code: '23505' } });
+        const res = await request(app).post("/api/user-series").send({ seriesId: 1 });
+        expect(res.statusCode).toBe(400);
+        expect(res.body.message).toContain("już znajjduje się");
+    });
+```
+
+### Testy w frontendzie
+
+W pliku `seriesService.test.js` znajdują się testy jednostkowe jak i serwisowe dla logiki odpowiedzialnej za obsługę seriali.
+Jak w przypadku poprzednich testów zastosowałam mock dla biblioteki axios oraz autoryzacji supabase. W sprawozdaniu pokażę przykładowe:
+
+Sprawdzone zostały funkcje pobierające trendy oglądalności oraz szczegóły dotyczące seriali. Dla każdego pobieranego przypadku testowany jest zarówno sukces jak i błąd.
+```
+test("getTrending sukces", async () => {
+        axios.get.mockResolvedValueOnce({ data: [1, 2] });
+        const res = await getTrending();
+        expect(res).toEqual([1, 2]);
+    });
+
+test("getTrending błąd", async () => {
+        axios.get.mockRejectedValueOnce(new Error("Network Error"));
+        const res = await getTrending();
+        expect(res).toEqual([]);
+    });
+```
+
+Testy operacji użytkownika zalogowaneego są to funkcje służące do zarządzania listą seriali. 
+```
+test("getUserSeries sukces", async () => {
+        supabase.auth.getSession.mockResolvedValueOnce({ data: { session: mockSession } });
+        axios.get.mockResolvedValueOnce({ data: [{ id: 1 }] });
+
+        const res = await getUserSeries();
+        expect(res.length).toBe(1);
+    });
+
+test("getUserSeries błąd", async () => {
+        supabase.auth.getSession.mockResolvedValueOnce({ data: { session: mockSession } });
+        axios.get.mockRejectedValueOnce(new Error("Error"));
+
+        const res = await getUserSeries();
+        expect(res).toEqual([]);
+    });
+```
+
+### Pokrycie testami
+
+Po odpaleniu komendy `npm test` mogę sprawdzić aktualne pokrycie kodu testami. 
+W moim przypadku wynosi ono:
+
+![pokrycie-testami](https://i.postimg.cc/sXDQB6Q0/image.png)

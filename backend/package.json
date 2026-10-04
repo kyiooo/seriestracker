@@ -16,7 +16,9 @@
     "@supabase/supabase-js": "^2.117.2",
     "axios": "^1.20.0",
     "cors": "^2.8.6",
+    "cross-fetch": "^4.1.0",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "ws": "^8.22.0"
   }
 }
