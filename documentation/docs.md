@@ -360,3 +360,7 @@ Po odpaleniu komendy `npm test` mogę sprawdzić aktualne pokrycie kodu testami.
 W moim przypadku wynosi ono:
 
 ![pokrycie-testami](https://i.postimg.cc/sXDQB6Q0/image.png)
+
+### Dokumentacja API
+
+W folderze `documentation` utworzylam nowy plik `api-documentation` mający na celu dokumentację listy endpointów w markdowni'e.
