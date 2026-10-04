@@ -364,3 +364,167 @@ W moim przypadku wynosi ono:
 ### Dokumentacja API
 
 W folderze `documentation` utworzylam nowy plik `api-documentation` mający na celu dokumentację listy endpointów w markdowni'e.
+
+## FAZA 3
+
+Zaczęłam od poprawy jednej rzeczy, frontend nie powinien znać adresu backendu.
+W tym celu otwotzyłam plik `src/services/seriesService.js` i zmieniłam **API_URL** tak by frontend sztywno nie wiedział, że backend siedzi na `localhost:3000`.
+Po zmianie React będzie po prostu wysyłał `api/trending`, nie będzie obchodzić go gdzie znajduje się backend.
+Dockerfile już był zoptymalizowany pod kątem obrazu ze względu na ustawienie wcześniej `node:22-alpine`.
+
+Kolejno przeszlam do pliku `Dockerfile` w backendzie, gdzie zmieniłam `RUN npm install` na `RUN npm ci`.
+Między `COPY` a `EXPOSE` dodałam:
+```
+ENV NODE_ENV=production
+ENV PORT=3000
+```
+a po `EXPOSE` dodałam:
+```
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+```
+
+Docker co 30 sekund odpytuje `http://localhost:3000/api/health` z backendu, ponieważ w `server.js` mam już healthchecka:
+```
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        message: 'SERWER DZIAŁA!'
+    });
+});
+```
+Czyli healthcheck sprawdza rzeczywiste działanie Expressa, a nie tylko to, czy proces Node istnieje.
+
+Następnie zdecydowałam się powiększyć `.dockerignore` by nie wysylać ogromnych i niechcianych plików do obrazu.
+Dodałam: 
+```
+build
+coverage
+.github
+.env.local
+.env.development
+.env.production
+.env.test
+yarn-debug.log*
+yarn-error.log*
+documentation
+```
+
+Potem tak samo rozszerzylam `.dockerignore` w backendzie.
+Następnie rozszerzyłam plik `docker-compose.yml`:
+```
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    ports:
+      - "3000:3000"
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - seriestracker-network
+
+    restart: unless-stopped
+
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - ./.env
+
+    environment:
+      PORT: 5000
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:5000"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    networks:
+      - seriestracker-network
+
+    restart: unless-stopped
+
+    stdin_open: true
+    tty: true
+
+
+networks:
+  seriestracker-network:
+    driver: bridge
+```
+
+Mam 2 services: frontend i backend, ze względu na to że bazę danych mam dzięki Supabase.
+Usługi dostaly swoje nazwy, dzięki którym później Docker może rozwiązać nazwę usługi na adres IP odpowiedniego kontenera.
+Dzięki `env_file: ./backend/.env` nie wpisuję wrażliwych danych do kodu publicznego.
+Dzięki `NODE_ENV: production` informuje Node, że uruchamiam aplikację jako środowisko produkcyjne/kontenerowe a nie testowe.
+Zdefiniowałam odpowiednie healthchecki. Co 30 sekund sprawdza, jeżeli odpowiedź trwa ponad 5 sekund, to uznaje próbę za nieudaną, pozwala na 3 nieudane próby zanim oznaczy kontener jako `unhealthy`, daje backendowi 10 sekund na normalne uruchomienie się.
+Healthcheck frontendu używał localhost, który wewnątrz kontenera został rozpoznany jako adres IPv6 ::1, a React na nim nie odpowiadał. Dlatego zmieniam go na 127.0.0.1, czyli jawny adres IPv4 wskazujący na ten sam kontener. Dzięki temu Docker może poprawnie sprawdzić, czy frontend rzeczywiście działa na porcie 5000, i oznaczyć go jako healthy.
+Dodałam też `restart: unless-stopped`, czyli jak kontener padnie, Docker może go ponownie uruchomić, chyba że sama świadomie go zatrzymałam, co zwiększa odporność usługi.
+
+Podłączyłam backend do mojej sieci, którą zdefiniowałam na dole. `bridge` tworzy prywatną wirtualną sieć pomiędzy kontenerami.
+Poprawność komunikacji potwierdziłam, wykonując z kontenera frontend żądanie do http://backend:3000/api/health za pomocą komendy `docker compose exec frontend wget -qO- http://backend:3000/api/health`.
+W odpowiedzi dostałam `{"status":"ok","message":"SERWER DZIAŁA!"}`, co udowadnia, że komunikacja po nazwach usług działa.\
+![komunikacja-kontenerow](https://i.postimg.cc/RhRBDH7f/image.png)\
+
+
+We frontendzie dałam solidną poprawkę. Poprawiłam 
+```
+depends_on:
+  - backend
+```
+na:
+```
+depends_on:
+  backend:
+    condition: service_healthy
+```
+Poprawia to orkiestrację i wylucza możliwosć, że Node mógł być jeszcze nie gotowy.
+
+Oba kontenery wstają ze statusem `healthy` z zoptymalizowanym obrazem, a kontenery komunikują się ze sobą za pomocą nazw usług.
+
