@@ -528,3 +528,57 @@ Poprawia to orkiestrację i wylucza możliwosć, że Node mógł być jeszcze ni
 
 Oba kontenery wstają ze statusem `healthy` z zoptymalizowanym obrazem, a kontenery komunikują się ze sobą za pomocą nazw usług.
 
+## FAZA 4
+
+Wybrałam uklad 
+> PR -> CI -> merge do `main` -> CI -> CD -> Render -> Healthcheck
+
+Nie chcę robić deploya na każdy zwykły push z dowolnej galęzi, bo można przypadkiem wrzucić syf na produkcję.
+Do `package.json` w głównym katalogu projektu dodalam linijkę `"lint": "eslint src backend --ext .js,.jsx",` między test a eject. Statycznej analizie podlega kod źródłowy zarówno części frontendowej React, jak i backendowej Express. Docelowo ten workflow będzie odpowiadać za: CI - sprawdzenie aplikacji, CD - wdrożenie aplikacji.
+wykonalam komendę `npm run lint` by sprawdzić błędy jakie może wykryć i je poprawiłam.
+wykonałam komendę `npm run build` by sprawdzić czy aplikacja bez problemu się zbuduje.
+wykonałam komendę `npm test` by sprawdzić czy testy przechodzą pomyślnie. 
+
+Następnie w katalogu glównym projektu utworzyłam nowy katalog `.github/workflows/` a w nim plik `ci-cd.yml`.
+Uzupełniłam plik o treść:
+```
+name: SeriesTracker CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci:
+    name: CI - Lint, Test and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests with coverage
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+```
+
+
+Job deploy posiada zależność `needs: ci`, dlatego nie może zostać wykonany, jeżeli etap Continuous Integration zakończy się niepowodzeniem.

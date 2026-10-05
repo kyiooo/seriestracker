@@ -73,7 +73,7 @@ app.post('/api/user-series', verifyToken, async (req, res) => {
         //id serialu pobrane z clienta na froncie
         const{ seriesId, status} = req.body;
 
-        const { data, error } = await supabase .from('user_series').insert({
+        const { error } = await supabase.from('user_series').insert({
             user_id: userId,
             series_id: seriesId,
             status: status || "Planowane"
@@ -95,7 +95,7 @@ app.post('/api/user-series', verifyToken, async (req, res) => {
 app.get('/api/user-series', verifyToken ,async (req, res) => {
     try{
         const userId = req.user.id;
-        const {data: userSeries, error} = await supabase .from('user_series')
+        const {data: userSeries, error} = await supabase.from('user_series')
             .select('*')
             .eq('user_id', userId)
             .order('created_at');

@@ -1,7 +1,7 @@
 import request from "supertest";
 import axios from "axios";
 import { supabase } from "./subabaseClient.js";
-
+import app from "./server.js";
 
 jest.mock("./authMiddleware.js", () => ({
     verifyToken: (req, res, next) => {
@@ -24,7 +24,6 @@ jest.mock("./subabaseClient.js", () => {
     return { supabase: chainable };
 });
 
-import app from "./server.js";
 
 describe("Express Server - Pełne Pokrycie", () => {
     afterEach(() => {
@@ -63,7 +62,7 @@ describe("Express Server - Pełne Pokrycie", () => {
         supabase.insert.mockResolvedValueOnce({ data: null, error: { code: '23505' } });
         const res = await request(app).post("/api/user-series").send({ seriesId: 1 });
         expect(res.statusCode).toBe(400);
-        expect(res.body.message).toContain("już znajjduje się");
+        expect(res.body.message).toContain("już znajduje się");
     });
 
     test("GET /api/user-series sukces z detalami z TMDb", async () => {
