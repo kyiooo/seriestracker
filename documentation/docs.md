@@ -656,3 +656,18 @@ cd:
 ```
 
 Job deploy posiada zależność `needs: ci`, dlatego nie może zostać wykonany, jeżeli etap Continuous Integration zakończy się niepowodzeniem.
+Następnie zacommitowałam zmiany. Pushnęlam zmiany na feature by zobaczyć czy potok dziala poprawnie i czy przypadkiem nie zrobi się deploy.
+Wszystko poszło poprawnie. \
+![pipeline](https://i.postimg.cc/mD92GTLv/image.png)
+
+Kolejno potwierdziłam merge'a.
+![pipeline-po-mergu](https://i.postimg.cc/R0RLLz5Q/image.png)
+
+Sprawdziłam też czy aplikacja dziala na linku live:
+![link live](https://i.postimg.cc/ZRz0nWM4/image.png)
+
+Wszystko chodzi dobrze, backend działa.
+Link do wersji live: https://seriestracker-frontend.onrender.com
+
+Sprawdzilam wszystkie checki i musiałam poprawić parę rzeczy:
+* dodalam `.env.eample` do katalogu głównego projektu

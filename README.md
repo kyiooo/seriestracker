@@ -274,7 +274,7 @@ http://localhost:3000
 
 ## 🌍 Wersja live
 
-[Series Tracker 🎬](https://series-tracker.onrender.com)
+[Series Tracker 🎬](https://seriestracker-frontend.onrender.com)
 
 ---
 
