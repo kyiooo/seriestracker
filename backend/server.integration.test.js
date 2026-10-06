@@ -29,7 +29,7 @@ describe("Testy Integracyjne: Express <-> Supabase", () => {
             .send({ seriesId: testSeriesId, status: "Planowane" });
 
         expect(res.statusCode).toBe(201);
-        expect(res.body.message).toBe("Serial pomyłśnie dodany do listy");
+        expect(res.body.message).toBe("Serial pomyślnie dodany do listy");
     });
 
     test("2. POST /api/user-series - blokowanie duplikatu", async () => {
@@ -38,7 +38,7 @@ describe("Testy Integracyjne: Express <-> Supabase", () => {
             .send({ seriesId: testSeriesId });
 
         expect(res.statusCode).toBe(400);
-        expect(res.body.message).toContain("Ten serial już znajjduje się na twjej liście");
+        expect(res.body.message).toContain("Ten serial już znajduje się na twojej liście");
     });
 
     test("3. DELETE /api/user-series/:seriesId - fizyczne usunięcie", async () => {

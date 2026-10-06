@@ -46,7 +46,7 @@ app.get('/api/series/:id', async (req, res) => {
         res.json(response.data);
     }catch(error){
         console.error(error)
-        res.status(500).json({message:'Błąd pobierania szegłówów seriali z TMDb'});
+        res.status(500).json({message:'Błąd pobierania szczegółów seriali z TMDb'});
     }
 });
 
@@ -73,21 +73,21 @@ app.post('/api/user-series', verifyToken, async (req, res) => {
         //id serialu pobrane z clienta na froncie
         const{ seriesId, status} = req.body;
 
-        const { data, error } = await supabase .from('user_series').insert({
+        const { error } = await supabase.from('user_series').insert({
             user_id: userId,
             series_id: seriesId,
             status: status || "Planowane"
         })
         if(error){
             if(error.code === '23505'){
-                return res.status(400).json({message:"Ten serial już znajjduje się na twjej liście"});
+                return res.status(400).json({message:"Ten serial już znajduje się na twojej liście"});
             }
             throw error;
         }
-            res.status(201).json({message:"Serial pomyłśnie dodany do listy"});
+            res.status(201).json({message:"Serial pomyślnie dodany do listy"});
     }catch(error){
-        console.error(error,"Bałąd zapisu");
-        res.status(500).json({message:"Bład serwera przy dodawaniu serialu"})
+        console.error(error,"Błąd zapisu");
+        res.status(500).json({message:"Błąd serwera przy dodawaniu serialu"})
     }
 })
 
@@ -95,7 +95,7 @@ app.post('/api/user-series', verifyToken, async (req, res) => {
 app.get('/api/user-series', verifyToken ,async (req, res) => {
     try{
         const userId = req.user.id;
-        const {data: userSeries, error} = await supabase .from('user_series')
+        const {data: userSeries, error} = await supabase.from('user_series')
             .select('*')
             .eq('user_id', userId)
             .order('created_at');
@@ -115,7 +115,7 @@ app.get('/api/user-series', verifyToken ,async (req, res) => {
                         details: tmdbResponse.data
                     };
                 }catch(error){
-                    console.error(error,`Błąd Pobierania TMDB DLA SERIALU ID: ${item.series_id}`);
+                    console.error(error,`Błąd pobierania TMDB DLA SERIALU ID: ${item.series_id}`);
                     return item;
                 }
             })
