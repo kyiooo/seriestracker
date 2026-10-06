@@ -531,7 +531,7 @@ Oba kontenery wstają ze statusem `healthy` z zoptymalizowanym obrazem, a konten
 ## FAZA 4
 
 Wybrałam uklad 
-> PR -> CI -> merge do `main` -> CI -> CD -> Render -> Healthcheck
+> PR -> CI -> merge do `main` -> CI -> CD -> Render
 
 Nie chcę robić deploya na każdy zwykły push z dowolnej galęzi, bo można przypadkiem wrzucić syf na produkcję.
 Do `package.json` w głównym katalogu projektu dodalam linijkę `"lint": "eslint src backend --ext .js,.jsx",` między test a eject. Statycznej analizie podlega kod źródłowy zarówno części frontendowej React, jak i backendowej Express. Docelowo ten workflow będzie odpowiadać za: CI - sprawdzenie aplikacji, CD - wdrożenie aplikacji.
@@ -580,10 +580,10 @@ jobs:
         run: npm run build
 ```
 CI uruchomi się w momencie Pull Requesta na gałąź `main`. Dzięki temu sprawdzam kod przed połączeniem go. Push oznacza, że jeżeli nowy kod znajdzie się na `main`, to uruchom workflow ponownie.
-Kolejno zajęłam się konfiguracją Github Secrets, w którym przechowuję dane wrażliwe takie jak SUPABASE_URL itd. Wcześniej miałam czerwony potok, ponieważ zapomnialam, że jeden test korzysta z danych z `.env`. Bezwłocznie się tym zajęłam aby później móc sprawdzić czy potok CI przechodzi na zielono.
+Kolejno zajęłam się konfiguracją Github Secrets, w którym przechowuję dane wrażliwe takie jak SUPABASE_URL itd. Wcześniej miałam przerwany czerwony potok, ponieważ zapomnialam, że jeden test korzysta z danych z `.env`. Bezwłocznie się tym zajęłam aby później móc sprawdzić czy potok CI przechodzi na zielono.
 
 Na gihtubie w moim repozytorium projektu weszłam kolejno do **Settings** -> **Secrets and variables** -> **Actions**, w sekcji **Repository secrets** kliknęłam **New repository secret**, następnie w okienkach uzupełniłam wrażliwe dane. Później będę dodawać tam również private URL Deploy Hook'a.\
-![Github Secrets](https://i.postimg.cc/HkzBk3yV/image.png)\
+![Github Secrets](https://i.postimg.cc/HkzBk3yV/image.png)
 
 Teraz w moim `workflows/ci-cd` w sekcji testów między name a run dodalam:
 ```
@@ -594,5 +594,65 @@ Teraz w moim `workflows/ci-cd` w sekcji testów między name a run dodalam:
   run: npm test
 ```
 ponieważ, mój test potrzebuje klucza z backendu.
+Po zmianie odpaliłam jeszcze lokalnie testy i lint.
+Następnie zrobiłam pusha do mojego pull requesta by zobaczyć czy CI ma już zielony potok.
+![CI potok](https://i.postimg.cc/q7XhTZhs/image.png)\
+
+Kolejno przygotowałam się do dodania kolejnego joba do mojego workflow. Zalogowalam się na Rendera. Na Renderze wykonalam kolejno kroki:
+* Kliknęlam kafelek **Create new project**
+* Wpisałam nazwę **SeriesTracker**\
+![Render](https://i.postimg.cc/Fz45yDsS/image.png)
+
+Potem przeszlam do konfiguracji usługi backendu.
+* Kliknęlam w **Create new service**
+* Wybrałam **New web service** w sekcji **Web Services**
+Dlatego, że mam backend, czyli proces serwerowy, który musi działać cały czas i obslugiwać endpointy API.
+* Wybralam repozytorium mojego projektu
+* W sekcji Advanced dalam **Auto-Deploy** na Off
+* Nadałam nazwę `seriestracker-backend`
+* Zmienilam **Root Directory** na `backend/`
+* W **Docker Build Context Directory** dalam `backend/ .`
+* W **Dockerfile Path** dalam `backend/Dockerfile`
+* W **Health Check Path** dałam `/api/health`
+* Dodalam do **Environment Variables** moje wrażliwe dane: TMDB, SUPABASE_KEY, SUPABASE_URL
+![Render-dane](https://i.postimg.cc/cL01y7Ym/image.png)\
+* Kliknęłam **Deploy web service**\
+![Render-backend/deploy](https://i.postimg.cc/C5stj8Km/image.png)\
+Oczywiście jeszcze nie ma najnowszego pull requesta, ponieważ nie został on zmergowany a workflow jeszcze nie obsłuje CD.\
+![Render-backend/deploy/api/health](https://i.postimg.cc/vBLXjsdB/image.png)
+
+Następnie przeszlam do konfiguracji usługi frontendu.
+* Kliknęlam w **Create new service**
+* Wybrałam **New static site** ponieważ to dla Reacta lepsze i prostsze rozwiązanie, Render ma osobną konfigurację dla `Create React App: build npm run build`
+* Wybralam repozytorium mojego projektu
+* Nadałam nazwę `seriestracker-frontend`
+* Dodalam do **Publish Directory** `build`
+* Dodalam do **Environment Variables** moje wrażliwe dane: SUPABASE_URL, SUPABASE_KEY, REACT_APP_API_URL
+* Dalam **Auto-Deploy** na Off
+* Kliknęłam **Deploy Static Site**\
+![Render-static-site](https://i.postimg.cc/Px0LHLzC/image.png)\
+![Production](https://i.postimg.cc/8C5srdZy/image.png)
+
+Kolejno przeszlam do konfiguracji Deploy-Hook'a. W Renderze kliknęlam swój frontend a potem **Settings**, gdzie przeszłam do sekcji **Deploy**. Tam skopiowałam swój prywatny adres URL Deply-Hook'a. 
+Ponownie na Githubie w swoim repozytorium dodałam nowy sekret, w którym znajduje się adres Deploy-Hook'a.\
+![deployhokfrontend](https://i.postimg.cc/CLp2LS7S/image.png)\
+Tak samo zrobiłam z backendem.\
+![deplouhookbackend](https://i.postimg.cc/BQcJJhxP/image.png)
+
+Wróciłam teraz do pliku `.github/workflows/ci-cd.yml` i w nim dodałam joba cd:
+```
+cd:
+    name: CD - Deploy to Render
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy backend to Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}"
+
+      - name: Deploy frontend to Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
+```
 
 Job deploy posiada zależność `needs: ci`, dlatego nie może zostać wykonany, jeżeli etap Continuous Integration zakończy się niepowodzeniem.
