@@ -579,6 +579,20 @@ jobs:
       - name: Build application
         run: npm run build
 ```
+CI uruchomi się w momencie Pull Requesta na gałąź `main`. Dzięki temu sprawdzam kod przed połączeniem go. Push oznacza, że jeżeli nowy kod znajdzie się na `main`, to uruchom workflow ponownie.
+Kolejno zajęłam się konfiguracją Github Secrets, w którym przechowuję dane wrażliwe takie jak SUPABASE_URL itd. Wcześniej miałam czerwony potok, ponieważ zapomnialam, że jeden test korzysta z danych z `.env`. Bezwłocznie się tym zajęłam aby później móc sprawdzić czy potok CI przechodzi na zielono.
 
+Na gihtubie w moim repozytorium projektu weszłam kolejno do **Settings** -> **Secrets and variables** -> **Actions**, w sekcji **Repository secrets** kliknęłam **New repository secret**, następnie w okienkach uzupełniłam wrażliwe dane. Później będę dodawać tam również private URL Deploy Hook'a.\
+![Github Secrets](https://i.postimg.cc/HkzBk3yV/image.png)\
+
+Teraz w moim `workflows/ci-cd` w sekcji testów między name a run dodalam:
+```
+- name: Run tests with coverage
+  env:
+    SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+    SUPABASE_KEY: ${{ secrets.BACKEND_SUPABASE_KEY }}
+  run: npm test
+```
+ponieważ, mój test potrzebuje klucza z backendu.
 
 Job deploy posiada zależność `needs: ci`, dlatego nie może zostać wykonany, jeżeli etap Continuous Integration zakończy się niepowodzeniem.
